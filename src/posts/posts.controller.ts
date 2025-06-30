@@ -6,6 +6,7 @@ import {
   Delete,
   Param,
   Body,
+  Query,
 } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
@@ -21,8 +22,9 @@ export class PostsController {
   }
 
   @Get()
-  findAll() {
-    return this.postsService.findAll();
+  findAll(@Query('tags') tags?: string | string[]) {
+    const tagList = Array.isArray(tags) ? tags : tags ? [tags] : [];
+    return this.postsService.findAllByTags(tagList);
   }
 
   @Get(':id')

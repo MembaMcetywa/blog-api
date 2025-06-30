@@ -3,5 +3,5 @@ export class CreatePostDto {
   content?: string;
   published?: boolean;
   authorId: number;
-  tagIds?: number[];
+  tags?: string[];
 }

@@ -20,16 +20,31 @@ export class PostsService {
         content: data.content,
         published: data.published ?? false,
         author: { connect: { id: data.authorId } },
-        tags: data.tagIds?.length
-          ? { connect: data.tagIds.map((id) => ({ id })) }
+        tags: data.tags?.length
+          ? {
+              connectOrCreate: data.tags.map((name) => ({
+                where: { name },
+                create: { name },
+              })),
+            }
           : undefined,
       },
       include: { author: true, tags: true },
     });
   }
 
-  findAll() {
+  findAllByTags(tagList: string[]) {
+    if (!tagList.length) {
+      return this.prisma.post.findMany({
+        include: { author: true, tags: true },
+      });
+    }
     return this.prisma.post.findMany({
+      where: {
+        tags: {
+          some: { name: { in: tagList } },
+        },
+      },
       include: { author: true, tags: true },
     });
   }
@@ -41,12 +56,29 @@ export class PostsService {
     });
   }
 
-  async update(id: number, data: UpdatePostDto) {
-    const existing = await this.prisma.post.findUnique({ where: { id } });
-    if (!existing) {
-      throw new NotFoundException(`Post with id ${id} not found`);
-    }
-    return this.prisma.post.update({ where: { id }, data });
+  async update(id: number, dto: UpdatePostDto) {
+    const post = await this.prisma.post.findUnique({ where: { id } });
+    if (!post) throw new NotFoundException(`Post ${id} not found`);
+
+    const { tags, ...rest } = dto;
+    return this.prisma.post.update({
+      where: { id },
+      data: {
+        ...rest,
+        ...(tags
+          ? {
+              tags: {
+                set: [],
+                connectOrCreate: tags.map((name) => ({
+                  where: { name },
+                  create: { name },
+                })),
+              },
+            }
+          : {}),
+      },
+      include: { author: true, tags: true },
+    });
   }
 
   async remove(id: number) {
